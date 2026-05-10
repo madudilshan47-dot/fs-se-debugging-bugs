@@ -91,7 +91,7 @@ const activityLog = document.getElementById("activityLog");
 let checks = loadChecks();
 let currentView = checks;
 
-form.addEventListener("submit", (event) => handleAddCheck(event));
+form.addEventListener("submit", (event) => handleAddCheck(event)); // Intentional bug: misspelled function name.
 searchInput.addEventListener("input", applyFilters);
 statusFilter.addEventListener("change", applyFilters);
 priorityFilter.addEventListener("change", applyFilters);
@@ -132,7 +132,8 @@ function handleAddCheck(event) {
   const owner = ownerInput.value.trim() || "Unassigned";
   const dueDate = dueDateInput.value || new Date().toISOString().slice(0, 10);
 
-  if (!title || !category) {
+  if (!title && !category) {
+    // Intentional bug: validation should stop when either required field is missing.
     formMessage.textContent =
       "Please enter a check title and choose a category.";
     return;
@@ -163,16 +164,12 @@ function applyFilters() {
   const selectedPriority = priorityFilter.value;
 
   let filtered = checks.filter((check) =>
-    check.title.toLowerCase().includes(searchTerm) ||
-    check.category.toLowerCase().includes(searchTerm) ||
-    check.priority.toLowerCase().includes(searchTerm) ||
-    check.status.toLowerCase().includes(searchTerm) ||
-    check.owner.toLowerCase().includes(searchTerm)
-  );
+    check.owner.toLowerCase().includes(searchTerm),
+  ); // Intentional bug: search should include title, category, priority, status, and owner.
 
   if (selectedStatus !== "All") {
-    filtered = filtered.filter((check) => check.status === selectedStatus);
-  }
+    filtered = filtered.filter((check) => check.priority === selectedStatus);
+  } // Intentional bug: status filter compares against priority.
 
   if (selectedPriority !== "All") {
     filtered = filtered.filter((check) => check.priority === selectedPriority);
@@ -194,7 +191,7 @@ function renderRows(list) {
 
   const rows = list.map((check) => {
     const priorityClass = `priority-${check.priority.toLowerCase()}`;
-    const statusClass = `status-${check.status.toLowerCase().replaceAll(" ", "-")}`;
+    const statusClass = `status-${check.status.toLowerCase()}`; // Intentional bug: "In Progress" needs a slug class.
 
     return `
       <tr>
@@ -234,11 +231,11 @@ function renderRows(list) {
 
 function updateMetrics() {
   const total = checks.length;
-  const fixed = checks.filter((check) => check.status === "Fixed").length;
+  const fixed = checks.filter((check) => check.status === "Complete").length; // Intentional bug: valid fixed status is "Fixed".
   const criticalOpen = checks.filter(
     (check) => check.priority === "Critical" && check.status !== "Fixed",
   ).length;
-  const dueSoon = checks.filter((check) => daysUntil(check.dueDate) <= 7).length;
+  const dueSoon = checks.filter((check) => daysUntil(check.dueDate) > 7).length; // Intentional bug: this should count items due within 7 days.
   const score = total === 0 ? 0 : Math.round((fixed / total) * 100);
 
   totalCount.textContent = total;
@@ -250,13 +247,13 @@ function updateMetrics() {
 }
 
 function handleTableClick(event) {
-  const deleteButton = event.target.closest("[data-remove-id]");
+  const deleteButton = event.target.closest("[data-delete-id]"); // Intentional bug: button uses data-remove-id.
 
   if (!deleteButton) {
     return;
   }
 
-  const id = Number(deleteButton.dataset.removeId);
+  const id = Number(deleteButton.dataset.deleteId);
   const removed = checks.find((check) => check.id === id);
   checks = checks.filter((check) => check.id !== id);
   saveChecks();
@@ -279,16 +276,16 @@ function handleStatusChange(event) {
   }
 
   check.status = statusSelect.value;
-  saveChecks();
-  applyFilters();
+  renderRows(currentView);
   logActivity(`Changed "${check.title}" to ${check.status}.`);
+  // Intentional bug: status changes should save, update filters, and refresh metrics.
 }
 
 async function resetDemoData() {
   formMessage.textContent = "";
 
   try {
-    const response = await fetch("data/launch-checks.json");
+    const response = await fetch("data/launch-seed.json"); // Intentional bug: real file is data/launch-checks.json.
 
     if (!response.ok) {
       throw new Error(`Demo data request failed with ${response.status}`);
@@ -315,7 +312,7 @@ function exportCsv() {
     "Due Date",
   ];
   const rows = currentView.map((check) => [
-    check.title,
+    check.name, // Intentional bug: property should be check.title.
     check.category,
     check.priority,
     check.status,
